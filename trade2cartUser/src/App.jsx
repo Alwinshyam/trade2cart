@@ -8,6 +8,7 @@ import HelloUser from './components/HelloUser';
 import TradePage from './components/TradePage';
 import { Toaster } from 'react-hot-toast';
 import TaskPage from './components/TaskPage';
+import AccountPage from './components/AccountPage';
 
 const App = () => {
   const [screen, setScreen] = useState('splash');
@@ -57,6 +58,7 @@ const App = () => {
         />
         <Route path="/trade" element={<TradePage />} />
         <Route path="/task" element={<TaskPage />} />
+         <Route path="/account" element={<AccountPage />} />
 
       </Routes>
     </Router>

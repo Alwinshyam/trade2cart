@@ -33,16 +33,40 @@ const LoginPage = ({ language, location }) => {
     return () => clearInterval(interval);
   }, [otpSent, timer]);
 
-  const generateAndSendOtp = () => {
+  const generateAndSendOtp = async () => {
     try {
-       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(otpCode);
-    console.log('OTP sent to mobile:', otpCode); // Simulated SMS
-    toast.success(`OTP has been successfully sent ${phone}`)
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(otpCode);
+      console.log('OTP sent to mobile:', otpCode); // Simulated SMS
+      toast.success(`OTP has been successfully sent to ${phone}`);
+
+      // WhatsApp API call using fetch (based on cURL you provided)
+      const response = await fetch('https://graph.facebook.com/v22.0/654550847751643/messages', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer EAAuYRFTsTbkBPD9QpAEhzwMSjLEgCVjh5zou7wk62WaumxHqrkfkaSRGqwSDbSg5mdJPsYfitdz33rYzP9TicyBU8vhPloficYd3qctWVUyHXDftUxMlEJv6JkLsnst2K90Em2oW9wZAtrOh0v8KAJr0FyCI6aRx8jzseNZBfrfzMmET1ZB0g1PmJ3ZBGgZDZD',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: `91${phone}`,
+          type: 'template',
+          template: {
+            name: 'trade2cartotp',
+            language: { code: 'en_US' },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('WhatsApp API Error:', error);
+        toast.error('Failed to send WhatsApp OTP');
+      }
     } catch (error) {
-      toast.error("invalid number")
+      console.error('Error sending WhatsApp OTP:', error);
+      toast.error('Network or API error');
     }
-   
   };
 
   const handleGetOtp = () => {
@@ -58,7 +82,6 @@ const LoginPage = ({ language, location }) => {
     setResendStatus('');
   };
 
-  // Save user after OTP is verified
   const saveUserToMockAPI = async () => {
     try {
       const savedLocation = localStorage.getItem('userLocation') || 'Unknown';
@@ -88,24 +111,20 @@ const LoginPage = ({ language, location }) => {
   const handleVerify = () => {
     if (timer === 0) {
       setOtpError('OTP expired. Please request a new one.');
-      toast.error("Time Reachedout")
+      toast.error("Time Reachedout");
       return;
     }
 
     if (otp !== generatedOtp) {
       setOtpError('Invalid OTP');
-      setOtpError()
-      toast.error("OTP NOT MATCHED")
-
+      toast.error("OTP NOT MATCHED");
       return;
     }
 
     setOtpError('');
     saveUserToMockAPI();
 
-    // ✅ Store the phone number in localStorage
     localStorage.setItem('userMobile', phone);
-
     navigate('/hello');
   };
 

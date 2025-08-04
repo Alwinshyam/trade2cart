@@ -1,29 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { FaHome, FaTasks, FaUserAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import '../assets/style/task.css'
+import '../assets/style/task.css';
 
 const TaskPage = () => {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [otp, setOtp] = useState('');
   const userMobile = localStorage.getItem('userMobile');
 
   useEffect(() => {
     fetch('https://6879bd1aabb83744b7e9d65c.mockapi.io/api/v1/User')
       .then(res => res.json())
-      .then(data => {
+      .then(async data => {
         const user = data.find(u => u.phone === userMobile);
         if (user) {
-          setStatus(user.Status || 'Pending');
+          const currentStatus = user.Status || 'Pending';
+          setStatus(currentStatus);
+
+          // ✅ If status is "on-schedule", ensure OTP exists or generate & store a new one
+          if (currentStatus.toLowerCase() === 'on-schedule') {
+            let newOtp = user.otp;
+            if (!newOtp || newOtp.length !== 4) {
+              newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+              await fetch(`https://6879bd1aabb83744b7e9d65c.mockapi.io/api/v1/User/${user.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp: newOtp }),
+              });
+            }
+            setOtp(newOtp);
+          } else if (user.otp) {
+            // 🔁 If already has OTP even when not on-schedule, reuse it
+            setOtp(user.otp);
+          }
         }
         setLoading(false);
       });
   }, []);
 
   const statusSteps = [
-    { title: 'Ordered', date: 'Mon, June 24' },
-    { title: 'Shipped', date: 'Tue, June 25' },
-    { title: 'Delivered', date: 'Fri, June 28' },
+    { title: 'Ordered' },
+    { title: 'Shipped' },
+    { title: 'Delivered' },
   ];
 
   const getStatusIndex = () => {
@@ -43,23 +62,31 @@ const TaskPage = () => {
         {loading ? (
           <p>Loading...</p>
         ) : (
-          <div className="flex justify-between items-start relative bg-white p-5 rounded-xl shadow-md">
-            {statusSteps.map((step, index) => (
-              <div
-                key={index}
-                className={`text-center w-1/3 order-tracking ${
-                  index <= statusIndex ? 'completed' : ''
-                }`}
-              >
-                <span className="is-complete"></span>
-                <p className={`${index <= statusIndex ? 'text-black' : 'text-gray-500'}`}>
-                  {step.title}
-                  <br />
-                  <span className="text-sm">{step.date}</span>
-                </p>
+          <>
+            <div className="flex justify-between items-start relative bg-white p-5 rounded-xl shadow-md">
+              {statusSteps.map((step, index) => (
+                <div
+                  key={index}
+                  className={`text-center w-1/3 order-tracking ${
+                    index <= statusIndex ? 'completed' : ''
+                  }`}
+                >
+                  <span className="is-complete"></span>
+                  <p className={`${index <= statusIndex ? 'text-black' : 'text-gray-500'}`}>
+                    {step.title}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* 🔐 Only display OTP when status is on-schedule */}
+            {status.toLowerCase() === 'on-schedule' && otp && (
+              <div className="mt-5 p-3 bg-white rounded-lg shadow text-center">
+                <p className="text-sm text-gray-600">Your OTP for this step:</p>
+                <p className="text-lg font-bold tracking-widest text-green-700">{otp}</p>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
